@@ -1,10 +1,11 @@
-﻿module FS.VerticalSlices.Data
+module FS.VerticalSlices.Data
 
 open FS.VerticalSlices.Models
 open Microsoft.EntityFrameworkCore
 open Microsoft.Extensions.Logging
 open Microsoft.EntityFrameworkCore.Metadata.Builders;
 open Microsoft.Data.Sqlite
+open System.Collections.Generic
 
 type ShopContext =
     inherit DbContext
@@ -13,26 +14,26 @@ type ShopContext =
     new(options: DbContextOptions<ShopContext>) = { inherit DbContext(options) }
 
     override _.OnModelCreating modelBuilder = 
-        let configureOrder (builder: EntityTypeBuilder<Order>) = 
+
+        modelBuilder.Entity<Order>(fun builder -> 
             builder.ToTable("Order", "dbo").HasKey(fun order -> order.Id :> obj) |> ignore
-            builder
-                .HasMany(fun order -> order.Lines)
-                .WithOne()
-                .HasForeignKey(fun line -> line.OrderId :> obj) |> ignore
-            //builder.OwnsMany((fun order -> order.Lines), 
-            //    fun (ob: OwnedNavigationBuilder<Order,Line>) -> 
-            //        ob.ToTable("OrderLine", "dbo").HasKey(fun line -> line.OrderId :> obj) |> ignore
-            //        ob.WithOwner().HasForeignKey((fun line -> line.OrderId :> obj)) |> ignore
-            //) |> ignore
 
-        modelBuilder.Entity<Order>(fun builder -> configureOrder builder) |> ignore
+            builder.OwnsMany(
+                (fun order -> order.Lines :> IEnumerable<Line>), 
+                (fun (ob: OwnedNavigationBuilder<Order,Line>) -> 
+                    ob.ToTable("OrderLine", "dbo").HasKey(fun line -> line.OrderId :> obj) |> ignore
+                    ob.WithOwner()
+                        .HasForeignKey(fun line -> line.OrderId :> obj)
+                        .HasPrincipalKey(fun order -> order.Id :> obj) |> ignore
+                )
+            ) |> ignore            
+        ) |> ignore
+
         modelBuilder.Entity<Customer>().ToTable("Customer", "dbo").HasKey(fun customer -> customer.Id :> obj) |> ignore
+
         modelBuilder.Entity<Product>().ToTable("Product", "dbo").HasKey(fun product -> product.Id :> obj) |> ignore
+        
         modelBuilder.Entity<Supplier>().ToTable("Supplier", "dbo").HasKey(fun supplier -> supplier.Id :> obj) |> ignore
-        modelBuilder.Entity<Line>().ToTable("Line", "dbo").HasKey(fun line -> line.OrderId :> obj) |> ignore
-        modelBuilder.Entity<Line>().HasOne<Order>().WithMany(fun order -> order.Lines).HasForeignKey(fun line -> line.OrderId :> obj) |> ignore
-
-
     
     [<DefaultValue>] val mutable orders:DbSet<Order>
     member x.Orders with get() = x.orders and set v = x.orders <- v

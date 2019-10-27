@@ -1,23 +1,25 @@
-﻿module FS.VerticalSlices.Models
+module FS.VerticalSlices.Models
 
 open System
+open System.Collections.Generic
 
 type OrderId = int
 type CustomerId = int
 type ProductId = int
 type SupplierId = int
-
+type OrderNumber = string
+type LineNumber = int
 type [<CLIMutable>] Order = { 
     Id: OrderId
     OrderDate: DateTime
-    OrderNumber: string
+    OrderNumber: OrderNumber
     CustomerId: CustomerId
-    Lines: Line seq
+    Lines: ICollection<Line>
 } 
 
 and [<CLIMutable>] Line = {
     OrderId: OrderId
-    Number: int
+    Number: LineNumber
     ProductId: ProductId
     UnitPrice: decimal
     Quantity: int
